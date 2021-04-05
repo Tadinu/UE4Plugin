@@ -18,3 +18,5 @@
 #include "Windows/HideWindowsPlatformTypes.h"
 #endif
 #endif
+
+#define NOESIS_DEBUG 0

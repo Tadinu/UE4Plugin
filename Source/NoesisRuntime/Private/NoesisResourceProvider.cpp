@@ -30,11 +30,14 @@ void FNoesisXamlProvider::OnXamlChanged(UNoesisXaml* Xaml)
 
 Noesis::Ptr<Noesis::Stream> FNoesisXamlProvider::LoadXaml(const char* Path)
 {
-	FString XamlPath = NsProviderPathToAssetPath(Path);
-	UNoesisXaml* Xaml = LoadObject<UNoesisXaml>(nullptr, *(FString("/Game/") + XamlPath), nullptr, LOAD_NoWarn);
+    //FString XamlPath = NsProviderPathToAssetPath(Path);
+    FString XamlPath = FString(Path);
+    FPaths::RemoveDuplicateSlashes(XamlPath);
+    UNoesisXaml* Xaml = LoadObject<UNoesisXaml>(nullptr, *XamlPath, nullptr, LOAD_NoWarn);
+    UE_LOG(LogNoesis, Verbose, TEXT("FNoesisXamlProvider::LoadXaml(): %ld %s"), Xaml, *XamlPath);
 	if (Xaml)
 	{
-		// Need to register the XAML's dependencies before returning.
+        // Need to register the XAML's dependencies (fonts, styles, etc.) before returning.
 		Xaml->RegisterDependencies();
 
 #if WITH_EDITOR
@@ -59,8 +62,9 @@ void FNoesisTextureProvider::OnTextureChanged(UTexture2D* Texture)
 
 Noesis::TextureInfo FNoesisTextureProvider::GetTextureInfo(const char* Path)
 {
-	FString TexturePath = NsProviderPathToAssetPath(Path);
-	UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *(FString("/Game/") + TexturePath), nullptr, LOAD_NoWarn);
+    FString TexturePath = FString(Path);
+    UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *TexturePath, nullptr, LOAD_NoWarn);
+    UE_LOG(LogNoesis, Verbose, TEXT("FNoesisTextureProvider::GetTextureInfo(): %ld %s"), Texture, *TexturePath);
 	if (Texture)
 	{
 #if WITH_EDITOR
@@ -74,9 +78,10 @@ Noesis::TextureInfo FNoesisTextureProvider::GetTextureInfo(const char* Path)
 
 Noesis::Ptr<Noesis::Texture> FNoesisTextureProvider::LoadTexture(const char* Path, Noesis::RenderDevice* RenderDevice)
 {
-	FString TexturePath = NsProviderPathToAssetPath(Path);
-	FString TextureObjectPath = TexturePath + TEXT(".") + FPackageName::GetShortName(TexturePath);
-	UTexture2D* Texture = FindObject<UTexture2D>(nullptr, *(FString("/Game/") + TextureObjectPath));
+    FString TextureObjectPath = FString(Path);
+    //FString TextureObjectPath = TexturePath + TEXT(".") + FPackageName::GetShortName(TexturePath);
+    UTexture2D* Texture = FindObject<UTexture2D>(nullptr, *TextureObjectPath);
+    UE_LOG(LogNoesis, Verbose, TEXT("FNoesisTextureProvider::LoadTexture(): %ld %s"), Texture, *TextureObjectPath);
 	if (Texture)
 	{
 		return NoesisCreateTexture(Texture);
@@ -89,30 +94,38 @@ void FNoesisFontProvider::RegisterFont(const UFontFace* FontFace)
 {
 	if (FontFace != nullptr)
 	{
-		FString FontFacePath = FontFace->GetPathName();
-		FString FontPackagePath = FPackageName::GetLongPackagePath(FontFacePath);
-		UObject* Package = FontFace->GetOutermost();
-		FString PackageRoot;
-		FString PackagePath;
-		FString PackageName;
-		FPackageName::SplitLongPackageName(Package->GetPathName(), PackageRoot, PackagePath, PackageName, false);
-		Noesis::CachedFontProvider::RegisterFont(TCHARToNsString(*PackagePath).Str(), TCHARToNsString(*(PackagePath + PackageName + TEXT(".") + FontFace->GetName())).Str());
+        const FString& fontFacePath = FontFace->GetPathName();
+        FString fontFullPackagePath = FPackageName::GetLongPackagePath(fontFacePath);
+
+        // (snote) Remove the leading slash due to [Noesis::GUI::SetFontFallbacks()] also doing so.
+        fontFullPackagePath.RemoveAt(0);
+        Noesis::CachedFontProvider::RegisterFont(TCHARToNsString(*fontFullPackagePath).Str(), TCHARToNsString(*fontFacePath).Str());
+        UE_LOG(LogNoesis, Verbose, TEXT("FNoesisFontProvider::RegisterFont() [%s]: [%s]"), *fontFullPackagePath, *fontFacePath);
+#if NOESIS_DEBUG
+        FString packageRoot, packagePath, packageName;
+        FPackageName::SplitLongPackageName(FontFace->GetPackage()->GetPathName(), packageRoot, packagePath, packageName, false);
+        UE_LOG(LogNoesis, Verbose, TEXT("Package: %s %s %s %s"), *fontFullPackagePath, *packageRoot, *packagePath, *packageName);
+#endif
 	}
 }
 
 Noesis::FontSource FNoesisFontProvider::MatchFont(const char* BaseUri, const char* FamilyName, Noesis::FontWeight& Weight,
 	Noesis::FontStretch& Stretch, Noesis::FontStyle& Style)
 {
-	FString PackagePath = NsProviderPathToAssetPath(BaseUri);
-
-	return Noesis::CachedFontProvider::MatchFont(TCHAR_TO_UTF8(*PackagePath), FamilyName, Weight, Stretch, Style);
+    return Noesis::CachedFontProvider::MatchFont(TCHAR_TO_UTF8(*FString(BaseUri)), FamilyName, Weight, Stretch, Style);
 }
 
 bool FNoesisFontProvider::FamilyExists(const char* BaseUri, const char* FamilyName)
 {
-	FString PackagePath = NsProviderPathToAssetPath(BaseUri);
-
-	return Noesis::CachedFontProvider::FamilyExists(TCHAR_TO_UTF8(*PackagePath), FamilyName);
+    FString fontPackagePath(BaseUri);
+    // (snote) Remove the leading slash due to [Noesis::GUI::SetFontFallbacks()] also doing so.
+    if (fontPackagePath.StartsWith(TEXT("/")))
+    {
+        fontPackagePath.RemoveAt(0);
+    }
+    bool bFontExists = Noesis::CachedFontProvider::FamilyExists(TCHAR_TO_UTF8(*fontPackagePath), FamilyName);
+    UE_LOG(LogNoesis, Verbose, TEXT("%d FNoesisFontProvider::FamilyExists() in [%s]: [%s]"), bFontExists, *fontPackagePath, *FString(FamilyName));
+    return bFontExists;
 }
 
 void FNoesisFontProvider::ScanFolder(const char* InFolder)
@@ -121,8 +134,9 @@ void FNoesisFontProvider::ScanFolder(const char* InFolder)
 
 Noesis::Ptr<Noesis::Stream> FNoesisFontProvider::OpenFont(const char* InFolder, const char* InFilename) const
 {
-	FString Filename = NsStringToFString(InFilename);
-	const UFontFace* FontFace = LoadObject<UFontFace>(nullptr, *(FString("/Game/") + Filename), nullptr, LOAD_NoWarn);
+    const UFontFace* FontFace = LoadObject<UFontFace>(nullptr, *FString(InFilename), nullptr, LOAD_NoWarn);
+
+    UE_LOG(LogNoesis, Verbose, TEXT("FNoesisFontProvider::OpenFont() %ld %s %s"), FontFace, *FString(InFilename), *FontFace->GetFontFilename());
 	if (FontFace != nullptr)
 	{
 		class FontArrayMemoryStream : public Noesis::MemoryStream

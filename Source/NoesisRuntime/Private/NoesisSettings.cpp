@@ -145,16 +145,12 @@ void UNoesisSettings::SetFontFallbacks() const
 					TArray<uint8> FileData;
 					FFileHelper::LoadFileToArray(FileData, *FontFace->GetFontFilename());
 
-					TArray<FString> Names = GetFamilyNames(Library, FileData);
-					for (auto& Name : Names)
+                    TArray<FString> fontFamilyNames = GetFamilyNames(Library, FileData);
+                    for (auto& fontFamily : fontFamilyNames)
 					{
-						FString FontPackagePath = FPackageName::GetLongPackagePath(FontFace->GetPathName());
-						UPackage* Package = FontFace->GetOutermost();
-						FString PackageRoot;
-						FString PackagePath;
-						FString PackageName;
-						FPackageName::SplitLongPackageName(Package->GetPathName(), PackageRoot, PackagePath, PackageName, false);
-						FamilyNamesStr.AddUnique(TCHARToNsString(*(PackagePath / "#" + Name)));
+                        FString fontFullPackagePath = FPackageName::GetLongPackagePath(FontFace->GetPathName());
+                        fontFullPackagePath.RemoveAt(0);
+                        FamilyNamesStr.AddUnique(TCHARToNsString(*(fontFullPackagePath / "#" + fontFamily)));
 					}
 				}
 				else
@@ -164,16 +160,12 @@ void UNoesisSettings::SetFontFallbacks() const
 					const FFontFaceData& FontFaceData = FontFaceDataRef.Get();
 					const TArray<uint8>& FontFaceDataArray = FontFaceData.GetData();
 
-					TArray<FString> Names = GetFamilyNames(Library, FontFaceDataArray);
-					for (auto& Name : Names)
+                    TArray<FString> fontFamilyNames = GetFamilyNames(Library, FontFaceDataArray);
+                    for (auto& fontFamily : fontFamilyNames)
 					{
-						FString FontPackagePath = FPackageName::GetLongPackagePath(FontFace->GetPathName());
-						UPackage* Package = FontFace->GetOutermost();
-						FString PackageRoot;
-						FString PackagePath;
-						FString PackageName;
-						FPackageName::SplitLongPackageName(Package->GetPathName(), PackageRoot, PackagePath, PackageName, false);
-						FamilyNamesStr.AddUnique(TCHARToNsString(*(PackagePath / "#" + Name)));
+                        FString fontFullPackagePath = FPackageName::GetLongPackagePath(FontFace->GetPathName());
+                        fontFullPackagePath.RemoveAt(0);
+                        FamilyNamesStr.AddUnique(TCHARToNsString(*(fontFullPackagePath / "#" + fontFamily)));
 					}
 				}
 			}
@@ -182,7 +174,9 @@ void UNoesisSettings::SetFontFallbacks() const
 		for (auto& Name : FamilyNamesStr)
 		{
 			FamilyNames.Add(Name.Str());
+            UE_LOG(LogNoesis, Verbose, TEXT("Add default fallback font family: %s"), *FString(Name.Str()));
 		}
+        // (snote) This for unclear reason chops off the leading '/'??
 		Noesis::GUI::SetFontFallbacks(FamilyNames.GetData(), FamilyNames.Num());
 		FT_Done_FreeType(Library);
 	}

@@ -261,7 +261,11 @@ void UNoesisInstance::InitInstance()
 	if (!BaseXaml)
 	{
 		UNoesisBlueprintGeneratedClass* NoesisBlueprintGeneratedClass = CastChecked<UNoesisBlueprintGeneratedClass>(GetClass());
-		check(NoesisBlueprintGeneratedClass);
+        if(!NoesisBlueprintGeneratedClass)
+        {
+            UE_LOG(LogNoesis, Warning, TEXT("[%s] No cpp instantiation or BP found for the BaseXaml under!"), *GetClass()->GetName());
+            return;
+        }
 		BaseXaml = NoesisBlueprintGeneratedClass->BaseXaml;
 		EnablePPAA = NoesisBlueprintGeneratedClass->EnablePPAA;
 		TessellationQuality = NoesisBlueprintGeneratedClass->TessellationQuality;

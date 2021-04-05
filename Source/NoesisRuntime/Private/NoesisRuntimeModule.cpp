@@ -161,12 +161,7 @@ void OnAssetRenamed(const FAssetData&, const FString& OldPath)
 
 void OnPostEngineInit()
 {
-	const UNoesisSettings* Settings = GetDefault<UNoesisSettings>();
-	Settings->SetLicense();
-	Settings->SetApplicationResources();
-	Settings->SetFontFallbacks();
-	Settings->SetFontDefaultProperties();
-
+    // NoesisGUI configs setting is left to be configured later by the client module
 #if WITH_EDITOR
 	if (GEditor)
 	{

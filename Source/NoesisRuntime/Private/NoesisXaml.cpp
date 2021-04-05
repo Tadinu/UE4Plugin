@@ -14,22 +14,13 @@ Noesis::Ptr<Noesis::BaseComponent> UNoesisXaml::LoadXaml()
 {
 	if (HasAnyFlags(RF_ClassDefaultObject))
 		return nullptr;
-	UObject* Package = GetOutermost();
-	FString PackageRoot;
-	FString PackagePath;
-	FString PackageName;
-	FPackageName::SplitLongPackageName(Package->GetPathName(), PackageRoot, PackagePath, PackageName, false);
-	return Noesis::GUI::LoadXaml(TCHARToNsString(*(PackagePath + PackageName + TEXT(".xaml"))).Str());
+
+    return Noesis::GUI::LoadXaml(TCHARToNsString(*(GetPackage()->GetPathName())).Str());
 }
 
 void UNoesisXaml::LoadComponent(Noesis::BaseComponent* Component)
 {
-	UObject* Package = GetOutermost();
-	FString PackageRoot;
-	FString PackagePath;
-	FString PackageName;
-	FPackageName::SplitLongPackageName(Package->GetPathName(), PackageRoot, PackagePath, PackageName, false);
-	Noesis::GUI::LoadComponent(Component, TCHARToNsString(*(PackagePath + PackageName + TEXT(".xaml"))).Str());
+    Noesis::GUI::LoadComponent(Component, TCHARToNsString(*(GetPackage()->GetPathName())).Str());
 }
 
 uint32 UNoesisXaml::GetContentHash() const

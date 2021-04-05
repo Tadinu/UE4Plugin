@@ -82,6 +82,7 @@ TArray<UFontFace*> ImportFontFamily(FString PackagePath, FString FamilyName, FSt
 						FT_Error Error = FT_Open_Face(FTLibrary, &Args, -1, &Face);
 						if (Error == 0)
 						{
+                            UE_LOG(LogNoesisEditor, Verbose, TEXT("Font faces num: %d"), Face->num_faces);
 							for (FT_Long FaceIndex = 0; FaceIndex < Face->num_faces; FaceIndex++)
 							{
 								FT_Face SubFace;
@@ -90,6 +91,7 @@ TArray<UFontFace*> ImportFontFamily(FString PackagePath, FString FamilyName, FSt
 								{
 									FString FaceFamilyName = SubFace->family_name;
 									FaceFamilyName.TrimStartAndEndInline();
+                                    UE_LOG(LogNoesisEditor, Verbose, TEXT("Font face family name: %s"), *FaceFamilyName);
 									if (FaceFamilyName == FamilyName)
 									{
 										FString FontFaceName = ObjectTools::SanitizeObjectName(FPaths::GetBaseFilename(FPaths::GetBaseFilename(FilenameOrDirectory)));
@@ -98,6 +100,7 @@ TArray<UFontFace*> ImportFontFamily(FString PackagePath, FString FamilyName, FSt
 
 										FString FontFaceObjectPath = FontPackagePath / FontFaceName + TEXT(".") + FontFaceName;
 										UFontFace* ExistingFontFace = LoadObject<UFontFace>(NULL, *FontFaceObjectPath);
+                                        UE_LOG(LogNoesisEditor, Verbose, TEXT("Font face: %s %s"), *FontFaceName, *FontFaceObjectPath);
 
 										if (ExistingFontFace)
 										{
@@ -106,6 +109,7 @@ TArray<UFontFace*> ImportFontFamily(FString PackagePath, FString FamilyName, FSt
 											continue;
 										}
 										FontFacePackage = CreatePackage(*(FontPackagePath / FontFaceName));
+                                        UE_LOG(LogNoesisEditor, Verbose, TEXT("Font package created: %ld %s"), FontFacePackage, *FontPackagePath);
 
 										auto FontFaceFactory = NewObject<UFontFileImportFactory>();
 										FontFaceFactory->AddToRoot();
@@ -336,6 +340,7 @@ UObject* UNoesisXamlFactory::FactoryCreateBinary(UClass* Class, UObject* Parent,
 				FString Extension = FPaths::GetExtension(PackagePath);
 				FString AssetPath = Path / ObjectTools::SanitizeInvalidChars(Filename, INVALID_LONGPACKAGE_CHARACTERS);
 				FString FilePath = PackagePath.Replace(*ProjectAssetPathRoot, *ProjectURIRoot);
+
 				if (!FPackageName::IsValidLongPackageName(AssetPath / "_Font"))
 				{
 					AssetPath = FString("/Game/") + AssetPath;
@@ -343,6 +348,7 @@ UObject* UNoesisXamlFactory::FactoryCreateBinary(UClass* Class, UObject* Parent,
 					FilePath = PackagePath.Replace(*ProjectAssetPathRoot, *ProjectURIRoot);
 					Path = FString("/Game/") + Path;
 				}
+                UE_LOG(LogNoesisEditor, Verbose, TEXT("Font asset's package path: %s %s %s %s %s"), *FamilyName, *PackagePath, *AssetPath, *FilePath, *Path);
 
 				TArray<UFontFace*> FontFaces = ImportFontFamily(PackagePath, FamilyName, FilePath);
 
